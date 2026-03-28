@@ -1,0 +1,144 @@
+
+import duckdb
+import pandas as pd
+import yfinance as yf
+from typing import List
+
+DB_PATH = "prices.db"
+TABLE_NAME = "prices"
+
+
+# -----------------------------
+# 1. Connect to DuckDB (file-backed)
+# -----------------------------
+con = duckdb.connect(DB_PATH)
+
+
+# -----------------------------
+# 2. Create schema (idempotent)
+# -----------------------------
+con.execute(f"""
+CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+    symbol     VARCHAR,
+    date       DATE,
+    open       DOUBLE,
+    high       DOUBLE,
+    low        DOUBLE,
+    close      DOUBLE,
+    volume     BIGINT
+)
+""")
+
+
+# -----------------------------
+# 3. Download prices from yfinance
+# -----------------------------
+def download_prices(
+    symbols: List[str],
+    start: str
+) -> pd.DataFrame:
+
+    df = yf.download(
+        tickers=symbols,
+        start=start,
+        group_by="ticker",
+        threads=True
+    )
+
+    frames = []
+
+    if len(symbols) == 1:
+        # Single ticker: yf.download returns a flat DataFrame (no MultiIndex)
+        sub = df.copy()
+        sub.reset_index(inplace=True)
+        sub.columns = [c.lower().replace(" ", "_") for c in sub.columns]
+        sub["symbol"] = symbols[0]
+        frames.append(sub)
+    else:
+        for symbol in symbols:
+            sub = df[symbol].copy()
+            sub.reset_index(inplace=True)
+            sub.columns = [c.lower().replace(" ", "_") for c in sub.columns]
+            sub["symbol"] = symbol
+            frames.append(sub)
+
+    return pd.concat(frames, ignore_index=True)
+
+
+# Read tickers from file and add .NS suffix for NSE
+with open("data/tickers.txt", "r") as f:
+    symbols = [line.strip() + ".NS" for line in f if line.strip()]
+
+prices_df = download_prices(symbols, start="2020-01-01")
+
+
+# -----------------------------
+# 4. Clean and standardize columns
+# -----------------------------
+prices_df = prices_df[
+    [
+        "symbol",
+        "date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+    ]
+]
+
+
+
+
+# -----------------------------
+# 6. Deduplicated insert (critical)
+# -----------------------------
+con.execute(f"""
+INSERT INTO {TABLE_NAME}
+SELECT *
+FROM prices_df
+WHERE (symbol, date) NOT IN (
+    SELECT symbol, date FROM {TABLE_NAME}
+)
+""")
+
+
+# -----------------------------
+# 7. Basic sanity queries
+# -----------------------------
+print(
+    con.execute(f"""
+    SELECT
+        symbol,
+        COUNT(*) AS rows,
+        MIN(date) AS start_date,
+        MAX(date) AS end_date
+    FROM {TABLE_NAME}
+    GROUP BY symbol
+    """).fetchdf()
+)
+
+
+# -----------------------------
+# 8. Time-series analytics example
+# -----------------------------
+ma_df = con.execute(f"""
+SELECT
+    date,
+    symbol,
+    close,
+    AVG(close) OVER (
+        PARTITION BY symbol
+        ORDER BY date
+        ROWS BETWEEN 20 PRECEDING AND CURRENT ROW
+    ) AS ma20
+FROM {TABLE_NAME}
+""").fetchdf()
+
+print(ma_df.head())
+
+
+# -----------------------------
+# 9. Persist & close
+# -----------------------------
+con.close()
