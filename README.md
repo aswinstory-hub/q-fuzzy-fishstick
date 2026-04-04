@@ -3,13 +3,13 @@
 ## Folder Structure
 
 |-data/<br>
-|  |-data_loader.py<br>
-|  |-database_create.txt<br>
-|  |-tickers.txt<br>
-|  |-utils.py<br>
+|  &nbsp;&nbsp;|-data_loader.py<br>
+|  &nbsp;&nbsp;|-database_create.txt<br>
+|  &nbsp;&nbsp;|-tickers.txt<br>
+|  &nbsp;&nbsp;|-utils.py<br>
 |<br>
 |-strats/<br>
-|  |-maCrossover.py<br>
+|  &nbsp;&nbsp;|-maCrossover.py<br>
 |<br>
 |-prices.db <br>
 |-README.md <br>
