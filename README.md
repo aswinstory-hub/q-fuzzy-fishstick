@@ -2,17 +2,17 @@
 
 ## Folder Structure
 
-|-data/
-|  |-data_loader.py
-|  |-database_create.txt
-|  |-tickers.txt
-|  |-utils.py
-|
-|-strats/
-|  |-maCrossover.py
-|
-|-prices.db 
-|-README.md 
+|-data/<br>
+|  |-data_loader.py<br>
+|  |-database_create.txt<br>
+|  |-tickers.txt<br>
+|  |-utils.py<br>
+|<br>
+|-strats/<br>
+|  |-maCrossover.py<br>
+|<br>
+|-prices.db <br>
+|-README.md <br>
 
 ---
 
