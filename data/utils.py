@@ -17,16 +17,3 @@ def load_tickers_ns() -> list[str]:
     return [t + ".NS" for t in load_tickers()]
 
 
-def ask_symbol() -> str:
-    """Interactive prompt — shows available tickers and validates the input."""
-    tickers = load_tickers()
-    print("\nAvailable symbols:")
-    print(", ".join(tickers))
-
-    while True:
-        symbol = input("\nSelect any one symbol from the above: ").strip().upper()
-        if symbol in tickers:
-            print(f"Nice choice! {symbol} is a great stock to select.")
-            return symbol
-        else:
-            print(f"  '{symbol}' is not in the list. Please try again.")
