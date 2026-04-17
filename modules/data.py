@@ -1,5 +1,6 @@
 # Module for importing and formating data
 import duckdb
+import pandas as pd
 from pathlib import Path
 
 
@@ -20,7 +21,18 @@ class Data:
         
         return df 
 
-    def ask_symbol() -> str:
+    def get_single_stock_chart_data(self, ticker :str):
+         
+        conn = duckdb.connect(str(self.db_path))
+
+        df = conn.execute(f"SELECT * EXCLUDE (symbol) FROM prices WHERE symbol = '{ticker}'").df()
+        df = df.rename(columns={"date": "time"})
+        df["time"] = pd.to_datetime(df["time"])
+        conn.close()
+
+        return df
+
+    def ask_symbol(self) -> str:
         """Interactive prompt — shows available tickers and validates the input."""
         tickers = load_tickers()
         print("\nAvailable symbols:")
